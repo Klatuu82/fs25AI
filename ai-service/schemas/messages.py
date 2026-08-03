@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+GAME_STATE_SNAPSHOT_SCHEMA_VERSION = "1.0.0"
+GAME_STATE_SNAPSHOT_SOURCE = "fs25-mod"
 
 
 class WarningMessage(BaseModel):
@@ -45,20 +48,64 @@ class EconomyState(BaseModel):
     prices: dict[str, int] = Field(default_factory=dict)
 
 
+class JobState(BaseModel):
+    job_id: str
+    title: str
+    status: str = "available"
+    reward: int = 0
+    completion: float = 0.0
+    mission_type: str | None = None
+    farm_id: int | None = None
+    active_id: int | None = None
+    field_id: int | None = None
+    field_name: str | None = None
+
+
+class WeatherState(BaseModel):
+    season: str = "unknown"
+    day: int = 0
+    time: str = "00:00"
+    forecast: str = "unknown"
+
+
+class StorageState(BaseModel):
+    storage_id: str
+    name: str
+    contents: dict[str, int] = Field(default_factory=dict)
+
+
 class GameStateSnapshot(BaseModel):
-    schema_version: str = "1.0.0"
-    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    source: str = "fs25-mod"
-    session_id: str = "unknown"
-    fields: list[FieldStatus] = Field(default_factory=list)
-    vehicles: list[VehicleState] = Field(default_factory=list)
-    jobs: list[dict[str, Any]] = Field(default_factory=list)
-    economy: EconomyState = Field(default_factory=EconomyState)
-    weather: dict[str, Any] = Field(default_factory=dict)
-    storages: list[dict[str, Any]] = Field(default_factory=list)
-    warnings: list[WarningMessage] = Field(default_factory=list)
-    active_tasks: list[ActiveTask] = Field(default_factory=list)
-    raw: dict[str, Any] = Field(default_factory=dict)
+    schema_version: str
+    generated_at: datetime
+    source: str
+    session_id: str
+    fields: list[FieldStatus]
+    vehicles: list[VehicleState]
+    jobs: list[JobState]
+    economy: EconomyState
+    weather: WeatherState
+    storages: list[StorageState]
+    warnings: list[WarningMessage]
+    active_tasks: list[ActiveTask]
+    raw: dict[str, Any]
+
+    @field_validator("schema_version")
+    @classmethod
+    def validate_schema_version(cls, value: str) -> str:
+        if value != GAME_STATE_SNAPSHOT_SCHEMA_VERSION:
+            msg = f"Unsupported schema_version '{value}'. Expected '{GAME_STATE_SNAPSHOT_SCHEMA_VERSION}'."
+            raise ValueError(msg)
+
+        return value
+
+    @field_validator("source")
+    @classmethod
+    def validate_source(cls, value: str) -> str:
+        if value != GAME_STATE_SNAPSHOT_SOURCE:
+            msg = f"Unsupported snapshot source '{value}'. Expected '{GAME_STATE_SNAPSHOT_SOURCE}'."
+            raise ValueError(msg)
+
+        return value
 
 
 class DecisionAction(BaseModel):

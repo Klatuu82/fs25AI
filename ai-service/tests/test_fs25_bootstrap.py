@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MOD_DESC_PATH = REPO_ROOT / "mod" / "modDesc.xml"
 BOOTSTRAP_PATH = REPO_ROOT / "mod" / "scripts" / "FS25AI.lua"
+BRIDGE_CLIENT_PATH = REPO_ROOT / "mod" / "scripts" / "BridgeClient.lua"
 CONFIG_PATH = REPO_ROOT / "mod" / "scripts" / "Config.lua"
 DEBUG_HUD_PATH = REPO_ROOT / "mod" / "scripts" / "DebugHud.lua"
 ICON_PATH = REPO_ROOT / "mod" / "modIcon.dds"
@@ -59,6 +60,7 @@ def test_fs25_bootstrap_registers_mission_lifecycle_listener() -> None:
 
 def test_bootstrap_diagnostics_are_configurable_and_rendered_via_debug_hud() -> None:
     config = CONFIG_PATH.read_text(encoding="utf-8")
+    bridge_client = BRIDGE_CLIENT_PATH.read_text(encoding="utf-8")
     debug_hud = DEBUG_HUD_PATH.read_text(encoding="utf-8")
     bootstrap = BOOTSTRAP_PATH.read_text(encoding="utf-8")
 
@@ -74,6 +76,10 @@ def test_bootstrap_diagnostics_are_configurable_and_rendered_via_debug_hud() -> 
     assert "function DebugHud:mouseEvent(posX, posY, isDown, isUp, button)" in debug_hud
     assert "function FS25AI:mouseEvent(posX, posY, isDown, isUp, button)" in bootstrap
     assert "g_inputBinding:setShowMouseCursor(true)" in bootstrap
+    assert "function BridgeClient:serializeSnapshot(snapshot)" in bridge_client
+    assert 'string.format(\'"%s":%s\', "fields", self:encodeArray(snapshot.fields or {}))' in bridge_client
+    assert 'string.format(\'"%s":%s\', "active_tasks", self:encodeArray(snapshot.active_tasks or {}))' in bridge_client
+    assert "serializedPayload = self:serializeSnapshot(snapshot)" in bridge_client
     assert WINDOW_TEXTURE_PATH.is_file()
     window_settings = WINDOW_SETTINGS_PATH.read_text(encoding="utf-8")
     assert "FS25AIWindowSettings.load" in debug_hud

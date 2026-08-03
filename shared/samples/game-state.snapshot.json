@@ -2,66 +2,101 @@
   "schema_version": "1.0.0",
   "generated_at": "2026-08-03T12:00:00Z",
   "source": "fs25-mod",
-  "session_id": "savegame-1",
-  "fields": [
-    {
-      "field_id": "field-12",
-      "name": "North Wheat",
-      "owned": true,
-      "crop_type": "wheat",
-      "growth_state": "ready_to_harvest",
-      "needs_attention": false,
-      "area_hectares": 2.4
-    }
-  ],
-  "vehicles": [
-    {
-      "vehicle_id": "tractor-1",
-      "name": "Fendt 724",
-      "category": "tractor",
-      "fill_level": 0.0,
-      "fill_type": null,
-      "active_task": "idle"
-    }
-  ],
+  "session_id": "CareerSavegame1",
+  "fields": [],
+  "vehicles": [],
   "jobs": [
     {
-      "job_id": "contract-3",
+      "job_id": "harvest-42",
       "title": "Harvest barley",
-      "status": "available",
-      "reward": 12450
+      "status": "running",
+      "reward": 12450,
+      "completion": 0.62,
+      "mission_type": "harvestMission",
+      "farm_id": 1,
+      "active_id": 42,
+      "field_id": 12,
+      "field_name": "Field 12"
     }
   ],
   "economy": {
     "money": 125000,
     "loan": 0,
-    "prices": {
-      "wheat": 1012,
-      "barley": 978
-    }
+    "prices": {}
   },
   "weather": {
-    "season": "summer",
+    "season": "period_4",
     "day": 3,
     "time": "09:30",
-    "forecast": "clear"
+    "forecast": "unknown"
   },
-  "storages": [
+  "storages": [],
+  "warnings": [
     {
-      "storage_id": "main-silo",
-      "name": "Main Silo",
-      "contents": {
-        "wheat": 42000
+      "code": "collector.adapter_placeholder",
+      "message": "The fields adapter still returns placeholder telemetry until the FS25 API is confirmed.",
+      "severity": "info",
+      "details": {
+        "category": "fields"
+      }
+    },
+    {
+      "code": "collector.adapter_placeholder",
+      "message": "The vehicles adapter still returns placeholder telemetry until the FS25 API is confirmed.",
+      "severity": "info",
+      "details": {
+        "category": "vehicles"
+      }
+    },
+    {
+      "code": "collector.loan_placeholder",
+      "message": "Loan telemetry remains unavailable until a confirmed FS25 loan accessor is identified.",
+      "severity": "info",
+      "details": {}
+    },
+    {
+      "code": "collector.adapter_placeholder",
+      "message": "The prices adapter still returns placeholder telemetry until the FS25 API is confirmed.",
+      "severity": "info",
+      "details": {
+        "category": "prices"
+      }
+    },
+    {
+      "code": "collector.weather_forecast_placeholder",
+      "message": "Weather forecast telemetry remains limited until a confirmed runtime accessor exposes the current forecast type.",
+      "severity": "info",
+      "details": {}
+    },
+    {
+      "code": "collector.adapter_placeholder",
+      "message": "The storages adapter still returns placeholder telemetry until the FS25 API is confirmed.",
+      "severity": "info",
+      "details": {
+        "category": "storages"
       }
     }
   ],
-  "warnings": [],
   "active_tasks": [
     {
-      "id": "task-telemetry",
-      "title": "Monitor harvest readiness",
+      "id": "harvest-42",
+      "title": "Harvest barley",
       "status": "active"
     }
   ],
-  "raw": {}
+  "raw": {
+    "assumptions": [
+      "Field, vehicle, storage, loan, price, and weather forecast telemetry remain placeholders until concrete FS25 APIs are confirmed."
+    ],
+    "serialization_policy": "omit_with_warning",
+    "adapter_status": {
+      "fields": "placeholder",
+      "vehicles": "placeholder",
+      "jobs": "runtime",
+      "economy": "runtime",
+      "weather": "runtime",
+      "storages": "placeholder",
+      "active_tasks": "runtime"
+    }
+  }
 }

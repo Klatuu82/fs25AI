@@ -72,7 +72,7 @@ most of them are intentionally still placeholders on the FS25 side.
 
 | Snapshot category | Status | Confirmed source today | Notes |
 | --- | --- | --- | --- |
-| `schema_version` | Confirmed | Constant `"1.0.0"` | Shared protocol contract value |
+| `schema_version` | Confirmed | `Config.protocol.snapshotSchemaVersion` | Shared protocol contract value |
 | `generated_at` | Partially confirmed | `os.date(...)` only if available | Falls back to a safe placeholder timestamp in FS25 runtime |
 | `source` | Confirmed | Constant `"fs25-mod"` | Stable emitter identifier |
 | `session_id` | Confirmed | `missionInfo.savegameName` | Current best single-player session identifier |
@@ -89,6 +89,7 @@ most of them are intentionally still placeholders on the FS25 side.
 | `warnings` | Placeholder-ready | Local collector may append warnings later | Current collector only stores an assumptions note under `raw` |
 | `active_tasks` | Partially confirmed | Derived from mission statuses `PREPARING` and `RUNNING` | Emits pending/active tasks from the current mission list |
 | `raw.assumptions` | Confirmed | Static conservative note | Explicitly marks unknown engine integrations |
+| `raw.serialization_policy` | Confirmed | `Config.protocol.unsupportedFieldPolicy` | Documents how unsupported nested fields are emitted |
 
 ## Nil/error handling rules already verified
 

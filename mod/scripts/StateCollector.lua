@@ -5,6 +5,15 @@ function StateCollector.new(config)
     local self = setmetatable({}, StateCollector)
     self.config = config
     self.lastSnapshot = nil
+    self.adapterOrder = {
+        "fields",
+        "vehicles",
+        "jobs",
+        "economy",
+        "weather",
+        "storages",
+        "active_tasks"
+    }
     self.adapters = {
         fields = function(context)
             return self:collectFields(context)
@@ -71,6 +80,38 @@ function StateCollector:appendWarnings(warnings, additionalWarnings)
     end
 end
 
+function StateCollector:getProtocolSetting(key, fallback)
+    if self.config ~= nil and self.config.protocol ~= nil and self.config.protocol[key] ~= nil then
+        return self.config.protocol[key]
+    end
+
+    return fallback
+end
+
+function StateCollector:coerceString(value, fallback)
+    if value == nil then
+        return fallback
+    end
+
+    return tostring(value)
+end
+
+function StateCollector:coerceInteger(value, fallback)
+    if type(value) ~= "number" then
+        return fallback
+    end
+
+    return math.floor(value + 0.5)
+end
+
+function StateCollector:coerceNumber(value, fallback)
+    if type(value) ~= "number" then
+        return fallback
+    end
+
+    return value
+end
+
 function StateCollector:buildContext()
     local mission = _G.g_currentMission
     local generatedAt, generatedAtWarning = self:getGeneratedAt()
@@ -106,7 +147,7 @@ function StateCollector:getSessionId(context)
         return "unknown"
     end
 
-    return tostring(mission.missionInfo.savegameName)
+    return self:coerceString(mission.missionInfo.savegameName, "unknown")
 end
 
 function StateCollector:placeholderWarning(category)
@@ -209,7 +250,7 @@ function StateCollector:getWeatherSeason(context)
     local environment = context.environment
 
     if environment ~= nil and environment.currentPeriod ~= nil then
-        return string.format("period_%d", environment.currentPeriod)
+        return string.format("period_%d", self:coerceInteger(environment.currentPeriod, 0))
     end
 
     return "unknown"
@@ -246,27 +287,27 @@ function StateCollector:getMissionTitle(mission)
         local title = mission:getTitle()
 
         if title ~= nil and title ~= "" then
-            return tostring(title)
+            return self:coerceString(title, "Unknown mission")
         end
     end
 
     if mission.progressTitle ~= nil and mission.progressTitle ~= "" then
-        return tostring(mission.progressTitle)
+        return self:coerceString(mission.progressTitle, "Unknown mission")
     end
 
     if mission.type ~= nil and mission.type.name ~= nil then
-        return tostring(mission.type.name)
+        return self:coerceString(mission.type.name, "Unknown mission")
     end
 
     return "Unknown mission"
 end
 
 function StateCollector:collectFields(context)
-    return {}, {self:placeholderWarning("fields")}
+    return {}, {self:placeholderWarning("fields")}, "placeholder"
 end
 
 function StateCollector:collectVehicles(context)
-    return {}, {self:placeholderWarning("vehicles")}
+    return {}, {self:placeholderWarning("vehicles")}, "placeholder"
 end
 
 function StateCollector:collectEconomy(context)
@@ -275,12 +316,8 @@ function StateCollector:collectEconomy(context)
     if farm ~= nil and farm.getBalance ~= nil then
         local balance = farm:getBalance()
 
-        if type(balance) ~= "number" then
-            balance = 0
-        end
-
         return {
-            money = math.floor(balance + 0.5),
+            money = self:coerceInteger(balance, 0),
             loan = 0,
             prices = {}
         }, {
@@ -290,14 +327,14 @@ function StateCollector:collectEconomy(context)
                 "info"
             ),
             self:placeholderWarning("prices")
-        }
+        }, "runtime"
     end
 
     return {
         money = 0,
         loan = 0,
         prices = {}
-    }, {self:placeholderWarning("economy")}
+    }, {self:placeholderWarning("economy")}, "placeholder"
 end
 
 function StateCollector:collectWeather(context)
@@ -315,9 +352,9 @@ function StateCollector:collectWeather(context)
 
     if environment ~= nil then
         if environment.currentDay ~= nil then
-            weather.day = environment.currentDay
+            weather.day = self:coerceInteger(environment.currentDay, 0)
         elseif environment.currentMonotonicDay ~= nil then
-            weather.day = environment.currentMonotonicDay
+            weather.day = self:coerceInteger(environment.currentMonotonicDay, 0)
         end
     end
 
@@ -327,15 +364,15 @@ function StateCollector:collectWeather(context)
             "Weather forecast telemetry remains limited until a confirmed runtime accessor exposes the current forecast type.",
             "info"
         )
-    }
+    }, environment ~= nil and "runtime" or "placeholder"
 end
 
 function StateCollector:collectStorages(context)
-    return {}, {self:placeholderWarning("storages")}
+    return {}, {self:placeholderWarning("storages")}, "placeholder"
 end
 
 function StateCollector:collectActiveTasks(context)
-    local jobs = self:collectJobs(context)
+    local jobs, _, jobsStatus = self:collectJobs(context)
     local tasks = {}
     local currentFarmId = self:getCurrentFarmId(context)
 
@@ -344,19 +381,19 @@ function StateCollector:collectActiveTasks(context)
 
         if isCurrentFarmTask and (job.status == "running" or job.status == "preparing") then
             table.insert(tasks, {
-                id = job.job_id,
-                title = job.title,
+                id = self:coerceString(job.job_id, "unknown"),
+                title = self:coerceString(job.title, "Unknown mission"),
                 status = job.status == "running" and "active" or "pending"
             })
         end
     end
 
-    return tasks, nil
+    return tasks, nil, jobsStatus == "runtime" and "runtime" or "placeholder"
 end
 
 function StateCollector:collectJobs(context)
     if context.jobsCache ~= nil then
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     if g_missionManager == nil or g_missionManager.getMissions == nil then
@@ -370,10 +407,11 @@ function StateCollector:collectJobs(context)
         }
         context.jobsCache = {
             jobs = {},
-            warnings = warnings
+            warnings = warnings,
+            status = "placeholder"
         }
 
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     local jobs = {}
@@ -390,44 +428,47 @@ function StateCollector:collectJobs(context)
         }
         context.jobsCache = {
             jobs = {},
-            warnings = warnings
+            warnings = warnings,
+            status = "placeholder"
         }
 
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     for _, mission in ipairs(missions) do
         local runtimeStatus = mission.status
         local job = {
-            job_id = mission.getUniqueId ~= nil and mission:getUniqueId() or tostring(mission.uniqueId or mission.activeMissionId or ((mission.type ~= nil and mission.type.name) or "unknown")),
+            job_id = mission.getUniqueId ~= nil and self:coerceString(mission:getUniqueId(), "unknown") or self:coerceString(mission.uniqueId or mission.activeMissionId or ((mission.type ~= nil and mission.type.name) or "unknown"), "unknown"),
             title = self:getMissionTitle(mission),
             status = self:getMissionStatusName(runtimeStatus),
-            reward = math.floor((mission.reward or 0) + 0.5),
-            completion = mission.completion or 0
+            reward = self:coerceInteger(mission.reward, 0),
+            completion = self:coerceNumber(mission.completion, 0)
         }
 
         if mission.type ~= nil and mission.type.name ~= nil then
-            job.mission_type = tostring(mission.type.name)
+            job.mission_type = self:coerceString(mission.type.name, nil)
         end
 
-        if mission.farmId ~= nil then
-            job.farm_id = mission.farmId
+        if type(mission.farmId) == "number" then
+            job.farm_id = self:coerceInteger(mission.farmId, 0)
         end
 
-        if mission.activeMissionId ~= nil then
-            job.active_id = mission.activeMissionId
+        if type(mission.activeMissionId) == "number" then
+            job.active_id = self:coerceInteger(mission.activeMissionId, 0)
         end
 
         if mission.getField ~= nil then
             local field = mission:getField()
 
             if field ~= nil then
-                if field.getId ~= nil then
-                    job.field_id = field:getId()
+                local fieldId = field.getId ~= nil and field:getId() or nil
+
+                if type(fieldId) == "number" then
+                    job.field_id = self:coerceInteger(fieldId, 0)
                 end
 
                 if field.getName ~= nil then
-                    job.field_name = field:getName()
+                    job.field_name = self:coerceString(field:getName(), nil)
                 end
             end
         end
@@ -437,26 +478,29 @@ function StateCollector:collectJobs(context)
 
     context.jobsCache = {
         jobs = jobs,
-        warnings = nil
+        warnings = nil,
+        status = "runtime"
     }
 
-    return context.jobsCache.jobs, context.jobsCache.warnings
+    return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
 end
 
 function StateCollector:applyAdapters(snapshot, context)
-    for category, adapter in pairs(self.adapters) do
-        local value, adapterWarnings = adapter(context)
+    for _, category in ipairs(self.adapterOrder) do
+        local adapter = self.adapters[category]
+        local value, adapterWarnings, adapterStatus = adapter(context)
         snapshot[category] = value
         self:appendWarnings(snapshot.warnings, adapterWarnings)
+        snapshot.raw.adapter_status[category] = adapterStatus or "placeholder"
     end
 end
 
 function StateCollector:collect()
     local context = self:buildContext()
     local snapshot = {
-        schema_version = "1.0.0",
+        schema_version = self:getProtocolSetting("snapshotSchemaVersion", "1.0.0"),
         generated_at = context.generatedAt,
-        source = "fs25-mod",
+        source = self:getProtocolSetting("snapshotSource", "fs25-mod"),
         session_id = self:getSessionId(context),
         fields = {},
         vehicles = {},
@@ -479,15 +523,8 @@ function StateCollector:collect()
             assumptions = {
                 "Field, vehicle, storage, loan, price, and weather forecast telemetry remain placeholders until concrete FS25 APIs are confirmed."
             },
-            adapter_status = {
-                fields = "placeholder",
-                vehicles = "placeholder",
-                jobs = "runtime",
-                economy = "runtime",
-                weather = "runtime",
-                storages = "placeholder",
-                active_tasks = "runtime"
-            }
+            serialization_policy = self:getProtocolSetting("unsupportedFieldPolicy", "omit_with_warning"),
+            adapter_status = {}
         }
     }
 
