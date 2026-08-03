@@ -130,7 +130,7 @@ function StateCollector:getCurrentFarmId(context)
     if mission ~= nil and mission.getFarmId ~= nil then
         local farmId = mission:getFarmId()
 
-        if farmId ~= nil then
+        if self:isUsableFarmId(farmId) then
             context.currentFarmId = farmId
             return farmId
         end
@@ -139,7 +139,7 @@ function StateCollector:getCurrentFarmId(context)
     if mission ~= nil and mission.playerSystem ~= nil and mission.playerSystem.getLocalPlayer ~= nil then
         local player = mission.playerSystem:getLocalPlayer()
 
-        if player ~= nil and player.farmId ~= nil then
+        if player ~= nil and self:isUsableFarmId(player.farmId) then
             context.currentFarmId = player.farmId
             return player.farmId
         end
@@ -152,6 +152,18 @@ function StateCollector:getCurrentFarmId(context)
     ))
 
     return nil
+end
+
+function StateCollector:isUsableFarmId(farmId)
+    if type(farmId) ~= "number" then
+        return false
+    end
+
+    if FarmManager ~= nil and farmId == FarmManager.SPECTATOR_FARM_ID then
+        return false
+    end
+
+    return farmId >= 1
 end
 
 function StateCollector:getCurrentFarm(context)
@@ -465,7 +477,7 @@ function StateCollector:collect()
         active_tasks = {},
         raw = {
             assumptions = {
-                "Field, vehicle, economy, and contract adapters are placeholders until concrete FS25 APIs are confirmed."
+                "Field, vehicle, storage, loan, price, and weather forecast telemetry remain placeholders until concrete FS25 APIs are confirmed."
             },
             adapter_status = {
                 fields = "placeholder",

@@ -50,6 +50,8 @@ def test_state_collector_reads_confirmed_runtime_data_only() -> None:
     collector = STATE_COLLECTOR_PATH.read_text(encoding="utf-8")
 
     assert "mission:getFarmId()" in collector
+    assert "function StateCollector:isUsableFarmId(farmId)" in collector
+    assert "FarmManager.SPECTATOR_FARM_ID" in collector
     assert "mission.playerSystem:getLocalPlayer()" in collector
     assert "g_farmManager:getFarmById(farmId)" in collector
     assert "farm:getBalance()" in collector
