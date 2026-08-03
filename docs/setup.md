@@ -2,8 +2,9 @@
 
 ## Prerequisites
 
+- Windows 10/11 with a local Farming Simulator 25 installation
 - Python 3.12+
-- A local Farming Simulator 25 modding workflow
+- Access to your local FS25 user profile under `Documents\My Games\FarmingSimulator2025`
 
 ## AI service
 
@@ -23,9 +24,9 @@ uvicorn app.main:app --app-dir /home/runner/work/fs25AI/fs25AI/ai-service --host
 - `POST /actions/route`
 - `WS /ws/telemetry`
 
-## FS25 mod packaging
+## Build the FS25 mod ZIP
 
-Build the mod zip from `/mod`:
+Build the mod ZIP from the repository root:
 
 ```bash
 python /home/runner/work/fs25AI/fs25AI/scripts/build_mod_zip.py
@@ -40,7 +41,19 @@ During packaging, the script validates that:
 - every file referenced from `extraSourceFiles` exists and is included
 - the ZIP is only published after archive validation succeeds
 
-### Reproducible GitHub Actions packaging
+## Install or replace the ZIP on Windows
+
+1. Build the ZIP locally and note the version in `/home/runner/work/fs25AI/fs25AI/mod/modDesc.xml`.
+2. Close Farming Simulator 25 before replacing any installed archive.
+3. Open your mods folder in Windows Explorer:
+   `Documents\My Games\FarmingSimulator2025\mods`
+4. Remove or move any older `fs25AI` ZIP you previously installed so that only one copy of the mod remains in the folder.
+5. Copy the newly built `dist/fs25AI-mod-<version>.zip` into the `mods` folder without unpacking it.
+6. Start the game and enable the mod for the savegame or map you want to test.
+
+Keeping only one installed ZIP matters because FS25 can otherwise load an older archive and make it look like your latest build was ignored.
+
+## Reproducible GitHub Actions packaging
 
 Maintainers can build the install-ready ZIP on a clean GitHub runner from the
 Actions UI:
@@ -71,15 +84,54 @@ automation while keeping the local script available for quick developer checks.
 3. Start with telemetry collection only.
 4. Inspect the JSON payloads in `/shared/samples` while filling in real FS25 adapters.
 
-## FS25 runtime bootstrap verification
+## FS25 smoke-test and log verification
 
-After packaging and copying the mod into the FS25 mods folder:
+### Where to find the game log
 
-1. Start or load a savegame.
-2. Confirm `log.txt` contains `[fs25AI] Startup smoke signal active` followed by a line like `[fs25AI] Loaded mod version ...`.
-3. Confirm the in-game debug HUD shows an `fs25AI active - heartbeat ...` status while the mission is running.
-4. Return to the main menu or switch missions and confirm `log.txt` contains `[fs25AI] Shutdown complete for current mission`.
-5. If needed, disable the smoke signal through `mod/scripts/Config.lua` by toggling `diagnostics.startupSignalEnabled`, `diagnostics.heartbeatEnabled`, or `features.debugHudEnabled`.
-6. If telemetry adapters are still placeholders, treat that as expected scaffold behavior rather than evidence that the lifecycle hook failed.
+FS25 writes its main runtime log to:
 
-The runtime entrypoint is intentionally bound through the script-mod listener callbacks `loadMap`, `update`, and `deleteMap` instead of relying on Lua file-load side effects alone.
+`Documents\My Games\FarmingSimulator2025\log.txt`
+
+Keep that file open while testing or reopen it after quitting the game.
+
+### Expected successful load signal
+
+After copying the ZIP into the mods folder and loading into a savegame or map:
+
+1. Open `log.txt`.
+2. Confirm it contains `[fs25AI] Startup smoke signal active`.
+3. Confirm it then contains a line like:
+   `[fs25AI] Loaded mod version 0.1.0.0 for map '...' (savegame: ...)`
+4. While the mission is running, confirm the in-game debug HUD shows `fs25AI active - heartbeat ...`.
+5. Return to the main menu or switch missions and confirm `log.txt` contains `[fs25AI] Shutdown complete for current mission`.
+
+Those entries show that the script-mod lifecycle hooks executed for mission load, update, and teardown.
+
+### How to confirm the correct ZIP version is loaded
+
+- Compare the version inside `/home/runner/work/fs25AI/fs25AI/mod/modDesc.xml` with the version reported in `log.txt` by `Loaded mod version ...`.
+- If you just replaced the ZIP, make sure the log reports the new version on the next load.
+- If the log still shows an older version, quit the game and re-check the `mods` folder for a second `fs25AI` archive that was not removed.
+
+### Diagnosing a failed load
+
+If the smoke signal does not appear in `log.txt`, check the same log file for nearby FS25 error lines before assuming the Lua bootstrap is broken.
+
+Common things to verify:
+
+- the ZIP is still compressed and was not copied into the mods folder as an extracted directory
+- only one `fs25AI` ZIP is installed
+- the archive build completed successfully and includes `modDesc.xml`
+- `log.txt` does not report a failed mod load, XML parsing problem, or missing script file from `extraSourceFiles`
+- the mod is actually enabled for the current savegame
+
+If the mod loads but telemetry does not reach the AI service, treat that separately from bootstrap success: the startup smoke signal, loaded-version line, shutdown line, and heartbeat HUD confirm the local mod lifecycle is active even when the bridge endpoint is offline.
+
+## Current scaffold limitations
+
+The current scaffold is intentionally conservative:
+
+- telemetry, field, vehicle, economy, weather, and contract adapters are still placeholders until the target FS25 APIs are confirmed
+- the AI service can be offline without blocking gameplay, so bridge failures do not prove the mod failed to load
+- action execution remains disabled by default and the service is still aimed at telemetry and conservative suggestions first
+- the debug HUD and startup diagnostics are meant for local smoke tests and can be turned off in `mod/scripts/Config.lua` once bootstrap validation is complete
