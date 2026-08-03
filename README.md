@@ -86,3 +86,6 @@ convention used by the other installed FS25 mods.
 - Heavy inference does **not** run in the Lua update loop.
 - Input emulation is explicitly out of scope for the foundation and should remain a last resort.
 - Single-player is the default target; multiplayer support can be added later.
+
+
+Latest Session: copilot --resume=3392a307-4769-4e75-bd84-f94869fa224e
