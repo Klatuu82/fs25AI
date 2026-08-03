@@ -10,9 +10,15 @@ end
 
 function StateCollector:collect()
     local mission = _G.g_currentMission
+    local generatedAt = "1970-01-01T00:00:00Z"
+
+    if type(os) == "table" and type(os.date) == "function" then
+        generatedAt = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    end
+
     local snapshot = {
         schema_version = "1.0.0",
-        generated_at = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+        generated_at = generatedAt,
         source = "fs25-mod",
         session_id = mission ~= nil and tostring(mission.missionInfo and mission.missionInfo.savegameName or "unknown") or "unknown",
         fields = {},
