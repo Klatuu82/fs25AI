@@ -8,7 +8,7 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 
-ARCHIVE_PREFIX = "fs25AI-mod"
+ARCHIVE_PREFIX = "FS25_fs25AI"
 FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 MOD_DESC_FILENAME = "modDesc.xml"
 
@@ -78,7 +78,8 @@ def validate_source_tree(source_dir: Path) -> tuple[str, list[Path], set[str]]:
 
 
 def build_output_path(output_dir: Path, version: str) -> Path:
-    return output_dir / f"{ARCHIVE_PREFIX}-{version}.zip"
+    safe_version = version.replace(".", "_")
+    return output_dir / f"{ARCHIVE_PREFIX}_{safe_version}.zip"
 
 
 def build_zip(source_dir: Path, output_path: Path) -> Path:

@@ -56,8 +56,8 @@ def test_package_mod_builds_a_versioned_reproducible_archive(tmp_path: Path) -> 
 
     second_archive = module.package_mod(source_dir, second_output_dir)
 
-    assert first_archive.name == "fs25AI-mod-1.2.3.4.zip"
-    assert second_archive.name == "fs25AI-mod-1.2.3.4.zip"
+    assert first_archive.name == "FS25_fs25AI_1_2_3_4.zip"
+    assert second_archive.name == "FS25_fs25AI_1_2_3_4.zip"
     assert first_bytes == second_archive.read_bytes()
 
     with ZipFile(second_archive) as archive:

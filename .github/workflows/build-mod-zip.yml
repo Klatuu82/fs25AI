@@ -52,7 +52,7 @@ jobs:
             --source-dir "${{ github.workspace }}/mod" \
             --output-dir "${{ github.workspace }}/dist"
 
-          artifact_path="$(find "${{ github.workspace }}/dist" -maxdepth 1 -type f -name 'fs25AI-mod-*.zip' | sort | head -n 1)"
+          artifact_path="$(find "${{ github.workspace }}/dist" -maxdepth 1 -type f -name 'FS25_fs25AI_*.zip' | sort | head -n 1)"
           if [ -z "${artifact_path}" ]; then
             echo "Packaging did not produce a ZIP artifact." >&2
             exit 1

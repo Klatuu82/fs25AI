@@ -33,7 +33,7 @@ python /home/runner/work/fs25AI/fs25AI/scripts/build_mod_zip.py
 ```
 
 The script packages the contents of `/mod` into a versioned artifact such as
-`dist/fs25AI-mod-0.1.0.0.zip`.
+`dist/FS25_fs25AI_0_1_0_0.zip`.
 
 During packaging, the script validates that:
 
@@ -48,7 +48,7 @@ During packaging, the script validates that:
 3. Open your mods folder in Windows Explorer:
    `Documents\My Games\FarmingSimulator2025\mods`
 4. Remove or move any older `fs25AI` ZIP you previously installed so that only one copy of the mod remains in the folder.
-5. Copy the newly built `dist/fs25AI-mod-<version>.zip` into the `mods` folder without unpacking it.
+5. Copy the newly built `dist/FS25_fs25AI_<version>.zip` into the `mods` folder without unpacking it.
 6. Start the game and enable the mod for the savegame or map you want to test.
 
 Keeping only one installed ZIP matters because FS25 can otherwise load an older archive and make it look like your latest build was ignored.
@@ -65,12 +65,12 @@ Actions UI:
 5. Start the workflow and wait for the `Build install-ready FS25 mod ZIP` job to finish.
 
 The completed workflow uploads the generated ZIP as an artifact named after the
-archive file, for example `fs25AI-mod-0.1.0.0.zip`.
+archive file, for example `FS25_fs25AI_0_1_0_0.zip`.
 
 To download it:
 
 1. Open the finished workflow run.
-2. In the **Artifacts** section, download the `fs25AI-mod-<version>.zip` artifact.
+2. In the **Artifacts** section, download the `FS25_fs25AI_<version>.zip` artifact.
 3. Extract or copy the ZIP as needed for installation or release publication.
 
 The same workflow can also be called by other GitHub workflows through

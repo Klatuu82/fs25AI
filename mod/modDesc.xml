@@ -8,6 +8,7 @@
     <description>
         <en>Telemetry-first Farming Simulator 25 AI companion scaffold.</en>
     </description>
+    <iconFilename>modIcon.dds</iconFilename>
     <multiplayer supported="false"/>
     <extraSourceFiles>
         <sourceFile filename="scripts/Config.lua"/>

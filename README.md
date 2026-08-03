@@ -69,7 +69,8 @@ uvicorn app.main:app --app-dir /home/runner/work/fs25AI/fs25AI/ai-service --relo
 python /home/runner/work/fs25AI/fs25AI/scripts/build_mod_zip.py
 ```
 
-The zip is written to `dist/fs25AI-mod.zip`.
+The zip is written to `dist/FS25_fs25AI_<version>.zip`, matching the naming
+convention used by the other installed FS25 mods.
 
 ## Documentation
 

@@ -9,6 +9,7 @@ MOD_DESC_PATH = REPO_ROOT / "mod" / "modDesc.xml"
 BOOTSTRAP_PATH = REPO_ROOT / "mod" / "scripts" / "FS25AI.lua"
 CONFIG_PATH = REPO_ROOT / "mod" / "scripts" / "Config.lua"
 DEBUG_HUD_PATH = REPO_ROOT / "mod" / "scripts" / "DebugHud.lua"
+ICON_PATH = REPO_ROOT / "mod" / "modIcon.dds"
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 
 
@@ -32,6 +33,8 @@ def test_mod_desc_uses_fs25_descriptor_and_dependency_order() -> None:
         "scripts/DebugHud.lua",
         "scripts/FS25AI.lua",
     ]
+    assert root.findtext("iconFilename") == "modIcon.dds"
+    assert ICON_PATH.is_file()
 
 
 def test_fs25_bootstrap_registers_mission_lifecycle_listener() -> None:
