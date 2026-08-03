@@ -1,0 +1,10 @@
+{
+  "request_id": "request-001",
+  "status": "accepted",
+  "message": "Action reviewed in dry-run mode.",
+  "executed": false,
+  "details": {
+    "mode": "dry_run"
+  },
+  "warnings": []
+}

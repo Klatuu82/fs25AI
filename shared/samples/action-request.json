@@ -1,0 +1,9 @@
+{
+  "request_id": "request-001",
+  "action_type": "review_harvest_plan",
+  "mode": "dry_run",
+  "parameters": {
+    "field_id": "field-12"
+  },
+  "requested_by": "ai-service"
+}

@@ -1,0 +1,8 @@
+{
+  "code": "bridge.offline",
+  "message": "AI companion service is unreachable; telemetry will be buffered locally.",
+  "severity": "warning",
+  "details": {
+    "endpoint": "http://127.0.0.1:8000"
+  }
+}
