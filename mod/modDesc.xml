@@ -15,6 +15,7 @@
         <sourceFile filename="scripts/StateCollector.lua"/>
         <sourceFile filename="scripts/BridgeClient.lua"/>
         <sourceFile filename="scripts/ActionExecutor.lua"/>
+        <sourceFile filename="scripts/WindowSettings.lua"/>
         <sourceFile filename="scripts/DebugHud.lua"/>
         <sourceFile filename="scripts/FS25AI.lua"/>
     </extraSourceFiles>

@@ -19,7 +19,9 @@ function Config.new(overrides)
     self.diagnostics = {
         startupSignalEnabled = true,
         heartbeatEnabled = true,
-        heartbeatIntervalMs = 5000
+        heartbeatIntervalMs = 5000,
+        windowMovable = true,
+        showMouseCursor = true
     }
     self.logging = {
         enabled = true,

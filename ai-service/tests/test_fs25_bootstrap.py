@@ -10,6 +10,8 @@ BOOTSTRAP_PATH = REPO_ROOT / "mod" / "scripts" / "FS25AI.lua"
 CONFIG_PATH = REPO_ROOT / "mod" / "scripts" / "Config.lua"
 DEBUG_HUD_PATH = REPO_ROOT / "mod" / "scripts" / "DebugHud.lua"
 ICON_PATH = REPO_ROOT / "mod" / "modIcon.dds"
+WINDOW_TEXTURE_PATH = REPO_ROOT / "mod" / "ui" / "fs25ai_window.dds"
+WINDOW_SETTINGS_PATH = REPO_ROOT / "mod" / "scripts" / "WindowSettings.lua"
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 
 
@@ -30,6 +32,7 @@ def test_mod_desc_uses_fs25_descriptor_and_dependency_order() -> None:
         "scripts/StateCollector.lua",
         "scripts/BridgeClient.lua",
         "scripts/ActionExecutor.lua",
+        "scripts/WindowSettings.lua",
         "scripts/DebugHud.lua",
         "scripts/FS25AI.lua",
     ]
@@ -57,11 +60,23 @@ def test_fs25_bootstrap_registers_mission_lifecycle_listener() -> None:
 def test_bootstrap_diagnostics_are_configurable_and_rendered_via_debug_hud() -> None:
     config = CONFIG_PATH.read_text(encoding="utf-8")
     debug_hud = DEBUG_HUD_PATH.read_text(encoding="utf-8")
+    bootstrap = BOOTSTRAP_PATH.read_text(encoding="utf-8")
 
     assert "self.diagnostics = {" in config
     assert "startupSignalEnabled = true" in config
     assert "heartbeatEnabled = true" in config
     assert "heartbeatIntervalMs = 5000" in config
+    assert "windowMovable = true" in config
+    assert "showMouseCursor = true" in config
     assert "function DebugHud:setHeartbeat(message)" in debug_hud
     assert "function DebugHud:draw()" in debug_hud
     assert "renderText(x, y - ((index - 1) * lineStep), textSize, tostring(line))" in debug_hud
+    assert "function DebugHud:mouseEvent(posX, posY, isDown, isUp, button)" in debug_hud
+    assert "function FS25AI:mouseEvent(posX, posY, isDown, isUp, button)" in bootstrap
+    assert "g_inputBinding:setShowMouseCursor(true)" in bootstrap
+    assert WINDOW_TEXTURE_PATH.is_file()
+    window_settings = WINDOW_SETTINGS_PATH.read_text(encoding="utf-8")
+    assert "FS25AIWindowSettings.load" in debug_hud
+    assert "FS25AIWindowSettings.save" in debug_hud
+    assert "function FS25AIWindowSettings.load(defaultX, defaultY)" in window_settings
+    assert "function FS25AIWindowSettings.save(x, y)" in window_settings

@@ -75,6 +75,7 @@ function FS25AIRuntime:handleCommand(request)
 end
 
 function FS25AIRuntime:shutdown()
+    self.debugHud:savePosition()
     self.debugHud:setStatus({})
     self.debugHud:setHeartbeat(nil)
 end
@@ -133,6 +134,14 @@ function FS25AI:loadMap(mapFilename)
     self.runtime = FS25AIRuntime.new()
     g_fs25AI = self.runtime
 
+    if self.runtime.config.diagnostics.windowMovable == true
+        and self.runtime.config.diagnostics.showMouseCursor == true
+        and g_inputBinding ~= nil
+        and g_inputBinding.setShowMouseCursor ~= nil
+    then
+        g_inputBinding:setShowMouseCursor(true)
+    end
+
     local missionInfo = g_currentMission ~= nil and g_currentMission.missionInfo or nil
     local savegameName = missionInfo ~= nil and missionInfo.savegameName or "unknown"
 
@@ -154,6 +163,14 @@ function FS25AI:deleteMap()
     end
 
     self.runtime:shutdown()
+
+    if self.runtime.config.diagnostics.showMouseCursor == true
+        and g_inputBinding ~= nil
+        and g_inputBinding.setShowMouseCursor ~= nil
+    then
+        g_inputBinding:setShowMouseCursor(false)
+    end
+
     self.runtime = nil
     g_fs25AI = nil
 
@@ -174,6 +191,14 @@ function FS25AI:draw()
     end
 
     self.runtime.debugHud:draw()
+end
+
+function FS25AI:mouseEvent(posX, posY, isDown, isUp, button)
+    if self.runtime == nil then
+        return false
+    end
+
+    return self.runtime.debugHud:mouseEvent(posX, posY, isDown, isUp, button)
 end
 
 addModEventListener(FS25AI)
