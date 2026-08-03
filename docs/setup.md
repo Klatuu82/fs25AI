@@ -77,6 +77,21 @@ The same workflow can also be called by other GitHub workflows through
 `workflow_call`, which makes it the reproducible shared build path for release
 automation while keeping the local script available for quick developer checks.
 
+## Publish a GitHub Release
+
+Release tags use the four-part mod version from `mod/modDesc.xml`, prefixed with
+`v`, for example `v0.1.0.0`. Pushing a tag in that format runs the release
+workflow, which calls the validated packaging workflow and publishes
+`FS25_fs25AI_0_1_0_0.zip` to a newly created GitHub Release for that tag.
+
+After the workflow completes, download the ZIP from the release's **Assets**
+section on the repository's GitHub Releases page. Packaging must succeed before
+the release asset is created or uploaded.
+
+The **Build FS25 Mod ZIP** workflow remains available through
+**Actions → Run workflow** for branch, tag, or commit-SHA builds. Manual runs
+upload a workflow artifact only; they do not create or modify a GitHub Release.
+
 ## Suggested local workflow
 
 1. Run the AI service locally.
