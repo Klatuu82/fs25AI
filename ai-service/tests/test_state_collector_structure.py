@@ -11,6 +11,9 @@ CONFIG_PATH = REPO_ROOT / "mod" / "scripts" / "Config.lua"
 def test_state_collector_declares_explicit_category_adapters() -> None:
     collector = STATE_COLLECTOR_PATH.read_text(encoding="utf-8")
 
+    assert "self.adapterOrder = {" in collector
+    assert '"fields"' in collector
+    assert '"active_tasks"' in collector
     assert "self.adapters = {" in collector
     assert "fields = function(context)" in collector
     assert "vehicles = function(context)" in collector
@@ -20,6 +23,7 @@ def test_state_collector_declares_explicit_category_adapters() -> None:
     assert "storages = function(context)" in collector
     assert "active_tasks = function(context)" in collector
     assert "function StateCollector:applyAdapters(snapshot, context)" in collector
+    assert "for _, category in ipairs(self.adapterOrder) do" in collector
 
 
 def test_state_collector_uses_structured_warnings_for_missing_runtime_state() -> None:

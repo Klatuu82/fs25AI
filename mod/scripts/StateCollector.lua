@@ -5,6 +5,15 @@ function StateCollector.new(config)
     local self = setmetatable({}, StateCollector)
     self.config = config
     self.lastSnapshot = nil
+    self.adapterOrder = {
+        "fields",
+        "vehicles",
+        "jobs",
+        "economy",
+        "weather",
+        "storages",
+        "active_tasks"
+    }
     self.adapters = {
         fields = function(context)
             return self:collectFields(context)
@@ -477,7 +486,8 @@ function StateCollector:collectJobs(context)
 end
 
 function StateCollector:applyAdapters(snapshot, context)
-    for category, adapter in pairs(self.adapters) do
+    for _, category in ipairs(self.adapterOrder) do
+        local adapter = self.adapters[category]
         local value, adapterWarnings, adapterStatus = adapter(context)
         snapshot[category] = value
         self:appendWarnings(snapshot.warnings, adapterWarnings)
