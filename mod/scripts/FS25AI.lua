@@ -8,6 +8,8 @@ function FS25AIRuntime.new(overrides)
     self.bridgeClient = BridgeClient.new(self.config)
     self.actionExecutor = ActionExecutor.new(self.config)
     self.debugHud = DebugHud.new(self.config)
+    self.heartbeatCount = 0
+    self.lastHeartbeatAt = nil
     self.lastTelemetryAt = 0
     return self
 end
@@ -18,7 +20,31 @@ function FS25AIRuntime:log(message)
     end
 end
 
+function FS25AIRuntime:updateHeartbeat(currentTimeMs)
+    if self.config.diagnostics.heartbeatEnabled ~= true then
+        return
+    end
+
+    if self.config.features.debugHudEnabled ~= true then
+        return
+    end
+
+    if self.lastHeartbeatAt ~= nil then
+        local elapsedMs = currentTimeMs - self.lastHeartbeatAt
+
+        if elapsedMs < self.config.diagnostics.heartbeatIntervalMs then
+            return
+        end
+    end
+
+    self.heartbeatCount = self.heartbeatCount + 1
+    self.lastHeartbeatAt = currentTimeMs
+    self.debugHud:setHeartbeat(string.format("fs25AI active - heartbeat %d", self.heartbeatCount))
+end
+
 function FS25AIRuntime:update(currentTimeMs)
+    self:updateHeartbeat(currentTimeMs)
+
     if self.config.features.telemetryEnabled ~= true then
         return
     end
@@ -50,6 +76,7 @@ end
 
 function FS25AIRuntime:shutdown()
     self.debugHud:setStatus({})
+    self.debugHud:setHeartbeat(nil)
 end
 
 FS25AI = {
@@ -109,6 +136,10 @@ function FS25AI:loadMap(mapFilename)
     local missionInfo = g_currentMission ~= nil and g_currentMission.missionInfo or nil
     local savegameName = missionInfo ~= nil and missionInfo.savegameName or "unknown"
 
+    if self.runtime.config.diagnostics.startupSignalEnabled == true then
+        self:log("Startup smoke signal active")
+    end
+
     self:log(string.format(
         "Loaded mod version %s for map '%s' (savegame: %s)",
         self:getVersion(),
@@ -135,6 +166,14 @@ function FS25AI:update(dt)
     end
 
     self.runtime:update(self:getCurrentTimeMs())
+end
+
+function FS25AI:draw()
+    if self.runtime == nil then
+        return
+    end
+
+    self.runtime.debugHud:draw()
 end
 
 addModEventListener(FS25AI)

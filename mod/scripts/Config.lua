@@ -16,6 +16,11 @@ function Config.new(overrides)
         actionExecutionEnabled = false,
         debugHudEnabled = true
     }
+    self.diagnostics = {
+        startupSignalEnabled = true,
+        heartbeatEnabled = true,
+        heartbeatIntervalMs = 5000
+    }
     self.logging = {
         enabled = true,
         prefix = "[fs25AI]"
