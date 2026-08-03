@@ -42,9 +42,13 @@ single-player bootstrap and early telemetry work:
 | --- | --- | --- | --- |
 | Current mission object | `g_currentMission` | Collector and bootstrap guard against `nil` | Root for mission-local telemetry lookups |
 | Savegame/session identity | `g_currentMission.missionInfo.savegameName` | Falls back to `"unknown"` | Serialized as `session_id` |
+| Current farm | `g_currentMission:getFarmId()` | Falls back to the local player `farmId` when needed | Resolving farm-scoped telemetry |
+| Local player | `g_currentMission.playerSystem:getLocalPlayer()` | Accessed only behind mission/player-system guards | Farm fallback for early telemetry |
 | Map identifier | `loadMap(mapFilename)` argument | Logged directly | Smoke-test logging and operator verification |
 | Mission time | `g_currentMission.time` | Falls back to `environment.dayTime`, then `0` | Heartbeat/telemetry scheduling |
 | Environment daytime | `g_currentMission.environment.dayTime` | Used only when `mission.time` is unavailable | Scheduling fallback |
+| Environment day counters | `g_currentMission.environment.currentDay` / `currentMonotonicDay` | Default to `0` when unavailable | Serialized as early weather/day telemetry |
+| Environment period | `g_currentMission.environment.currentPeriod` | Falls back to `"unknown"` | Serialized conservatively as a period-based season marker |
 | Mod version | `g_modManager:getModByName(g_currentModName).version` | Falls back to `"unknown"` | Logged during load |
 
 ## Confirmed filesystem/runtime services
@@ -58,6 +62,8 @@ These engine services are confirmed through current mod code:
 | XML persistence | `XMLFile.load(...)`, `XMLFile.create(...)` | Reading/writing `fs25AI_window.xml` |
 | Mouse cursor visibility | `g_inputBinding:setShowMouseCursor(...)` | Enabling drag interaction for the telemetry window |
 | Overlay creation | `g_overlayManager:createOverlay(...)` | Drawing the telemetry window background |
+| Farm manager | `g_farmManager:getFarmById(farmId)` | Returns `nil` safely when the farm cannot be resolved | Reading confirmed farm balance telemetry |
+| Mission manager | `g_missionManager:getMissions()` | Collector degrades to placeholders when unavailable | Reading contract/job telemetry |
 
 ## Telemetry categories: confirmed vs placeholder
 
@@ -72,13 +78,16 @@ most of them are intentionally still placeholders on the FS25 side.
 | `session_id` | Confirmed | `missionInfo.savegameName` | Current best single-player session identifier |
 | `fields` | Placeholder | None confirmed yet | Do not guess field manager APIs |
 | `vehicles` | Placeholder | None confirmed yet | Do not guess vehicle iteration APIs |
-| `jobs` / contracts | Placeholder | None confirmed yet | No contract manager integration yet |
-| `economy.money` / `economy.loan` | Placeholder | None confirmed yet | Values remain zero until APIs are verified |
+| `jobs` / contracts | Partially confirmed | `g_missionManager:getMissions()`, `mission:getUniqueId()`, `mission:getTitle()`, `mission.status`, `mission.reward`, `mission.completion` | Emits real contract/job rows while preserving placeholder handling when the mission manager is unavailable |
+| `economy.money` | Confirmed | `g_farmManager:getFarmById(g_currentMission:getFarmId()):getBalance()` | Emits the active farm balance |
+| `economy.loan` | Placeholder | None confirmed yet | Remains `0` until a verified runtime accessor is documented |
 | `economy.prices` | Placeholder | None confirmed yet | No price-table integration yet |
-| `weather` | Placeholder | None confirmed yet | `dayTime` is only used for scheduling fallback, not serialized as real weather |
+| `weather.time` / `weather.day` | Partially confirmed | `environment.dayTime`, `environment.currentDay`, `environment.currentMonotonicDay` | Emits real mission clock/day data |
+| `weather.season` | Partially confirmed | `environment.currentPeriod` | Serialized conservatively as `period_<n>` until a canonical season-name accessor is verified |
+| `weather.forecast` | Placeholder | None confirmed yet | Remains `"unknown"` until a forecast accessor is verified |
 | `storages` | Placeholder | None confirmed yet | No silo/storage adapters yet |
 | `warnings` | Placeholder-ready | Local collector may append warnings later | Current collector only stores an assumptions note under `raw` |
-| `active_tasks` | Placeholder | None confirmed yet | No real task extraction yet |
+| `active_tasks` | Partially confirmed | Derived from mission statuses `PREPARING` and `RUNNING` | Emits pending/active tasks from the current mission list |
 | `raw.assumptions` | Confirmed | Static conservative note | Explicitly marks unknown engine integrations |
 
 ## Nil/error handling rules already verified
@@ -87,11 +96,15 @@ The current telemetry path must remain safe when FS25 objects are unavailable:
 
 - `g_currentMission` may be `nil` outside a loaded mission.
 - `missionInfo` may be absent and must not be indexed blindly.
+- `g_currentMission:getFarmId()` may not resolve a usable farm during transitions;
+  the collector falls back to the local player `farmId` before degrading.
 - `mission.time` may be absent; `environment.dayTime` is the only current
   fallback used for timing.
 - `os.date` is **not** guaranteed in the FS25 Lua runtime and must be guarded.
-- Unconfirmed engine managers must not be called from production Lua until they
-  are observed and documented.
+- `g_farmManager` and `g_missionManager` must be guarded before use so the
+  collector can degrade cleanly during early mission lifecycle transitions.
+- Unconfirmed engine managers and accessors must not be called from production
+  Lua until they are observed and documented.
 
 ## Lightweight polling guidance
 
@@ -111,11 +124,11 @@ The following categories still require runtime verification before production
 use and belong to follow-up telemetry issues:
 
 - field ownership, crop, and growth-state APIs
-- contract/job manager access
+- contract/job details beyond the confirmed mission-list, status, reward, and completion accessors
 - vehicle/tool iteration and attachment state
-- economy, loan, and sell-price managers
+- loan and sell-price managers
 - storage/silo inventory access
-- weather/season forecast APIs beyond scheduling fallback
+- weather forecast APIs beyond clock/day/period access
 
 Until those are confirmed, keep them behind placeholder adapters and document
 every newly verified API before relying on it in `StateCollector`.

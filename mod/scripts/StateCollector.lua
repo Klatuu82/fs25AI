@@ -88,6 +88,7 @@ function StateCollector:buildContext()
 
     return {
         mission = mission,
+        environment = mission ~= nil and mission.environment or nil,
         generatedAt = generatedAt,
         warnings = warnings
     }
@@ -119,6 +120,147 @@ function StateCollector:placeholderWarning(category)
     )
 end
 
+function StateCollector:getCurrentFarmId(context)
+    if context.currentFarmId ~= nil then
+        return context.currentFarmId
+    end
+
+    local mission = context.mission
+
+    if mission ~= nil and mission.getFarmId ~= nil then
+        local farmId = mission:getFarmId()
+
+        if self:isUsableFarmId(farmId) then
+            context.currentFarmId = farmId
+            return farmId
+        end
+    end
+
+    if mission ~= nil and mission.playerSystem ~= nil and mission.playerSystem.getLocalPlayer ~= nil then
+        local player = mission.playerSystem:getLocalPlayer()
+
+        if player ~= nil and self:isUsableFarmId(player.farmId) then
+            context.currentFarmId = player.farmId
+            return player.farmId
+        end
+    end
+
+    self:appendWarning(context.warnings, self:makeWarning(
+        "collector.farm_id_unavailable",
+        "The current player farm could not be resolved from the mission runtime.",
+        "warning"
+    ))
+
+    return nil
+end
+
+function StateCollector:isUsableFarmId(farmId)
+    if type(farmId) ~= "number" then
+        return false
+    end
+
+    if FarmManager ~= nil and farmId == FarmManager.SPECTATOR_FARM_ID then
+        return false
+    end
+
+    return farmId >= 1
+end
+
+function StateCollector:getCurrentFarm(context)
+    local farmId = self:getCurrentFarmId(context)
+
+    if farmId == nil then
+        return nil
+    end
+
+    if g_farmManager ~= nil and g_farmManager.getFarmById ~= nil then
+        local farm = g_farmManager:getFarmById(farmId)
+
+        if farm ~= nil then
+            return farm
+        end
+    end
+
+    self:appendWarning(context.warnings, self:makeWarning(
+        "collector.farm_unavailable",
+        "The current player farm could not be loaded from g_farmManager.",
+        "warning",
+        {
+            farm_id = farmId
+        }
+    ))
+
+    return nil
+end
+
+function StateCollector:formatDayTime(dayTimeMs)
+    if type(dayTimeMs) ~= "number" then
+        return "00:00"
+    end
+
+    local totalMinutes = math.floor(dayTimeMs / (1000 * 60))
+    local hours = math.floor(totalMinutes / 60) % 24
+    local minutes = totalMinutes % 60
+
+    return string.format("%02d:%02d", hours, minutes)
+end
+
+function StateCollector:getWeatherSeason(context)
+    local environment = context.environment
+
+    if environment ~= nil and environment.currentPeriod ~= nil then
+        return string.format("period_%d", environment.currentPeriod)
+    end
+
+    return "unknown"
+end
+
+function StateCollector:getWeatherForecast(context)
+    return "unknown"
+end
+
+function StateCollector:getMissionStatusName(status)
+    if MissionStatus ~= nil then
+        if status == MissionStatus.CREATED then
+            return "available"
+        elseif status == MissionStatus.PREPARING then
+            return "preparing"
+        elseif status == MissionStatus.RUNNING then
+            return "running"
+        elseif status == MissionStatus.FINISHED then
+            return "finished"
+        elseif status == MissionStatus.DISMISSED then
+            return "dismissed"
+        end
+    end
+
+    return tostring(status)
+end
+
+function StateCollector:getMissionTitle(mission)
+    if mission == nil then
+        return "Unknown mission"
+    end
+
+    if mission.getTitle ~= nil then
+        local title = mission:getTitle()
+
+        if title ~= nil and title ~= "" then
+            return tostring(title)
+        end
+    end
+
+    if mission.progressTitle ~= nil and mission.progressTitle ~= "" then
+        return tostring(mission.progressTitle)
+    end
+
+    if mission.type ~= nil and mission.type.name ~= nil then
+        return tostring(mission.type.name)
+    end
+
+    return "Unknown mission"
+end
+
 function StateCollector:collectFields(context)
     return {}, {self:placeholderWarning("fields")}
 end
@@ -127,11 +269,30 @@ function StateCollector:collectVehicles(context)
     return {}, {self:placeholderWarning("vehicles")}
 end
 
-function StateCollector:collectJobs(context)
-    return {}, {self:placeholderWarning("jobs")}
-end
-
 function StateCollector:collectEconomy(context)
+    local farm = self:getCurrentFarm(context)
+
+    if farm ~= nil and farm.getBalance ~= nil then
+        local balance = farm:getBalance()
+
+        if type(balance) ~= "number" then
+            balance = 0
+        end
+
+        return {
+            money = math.floor(balance + 0.5),
+            loan = 0,
+            prices = {}
+        }, {
+            self:makeWarning(
+                "collector.loan_placeholder",
+                "Loan telemetry remains unavailable until a confirmed FS25 loan accessor is identified.",
+                "info"
+            ),
+            self:placeholderWarning("prices")
+        }
+    end
+
     return {
         money = 0,
         loan = 0,
@@ -140,19 +301,33 @@ function StateCollector:collectEconomy(context)
 end
 
 function StateCollector:collectWeather(context)
-    local mission = context.mission
+    local environment = context.environment
     local weather = {
-        season = "unknown",
+        season = self:getWeatherSeason(context),
         day = 0,
         time = "00:00",
-        forecast = "unknown"
+        forecast = self:getWeatherForecast(context)
     }
 
-    if mission ~= nil and mission.environment ~= nil and mission.environment.dayTime ~= nil then
-        weather.time = tostring(mission.environment.dayTime)
+    if environment ~= nil and environment.dayTime ~= nil then
+        weather.time = self:formatDayTime(environment.dayTime)
     end
 
-    return weather, {self:placeholderWarning("weather")}
+    if environment ~= nil then
+        if environment.currentDay ~= nil then
+            weather.day = environment.currentDay
+        elseif environment.currentMonotonicDay ~= nil then
+            weather.day = environment.currentMonotonicDay
+        end
+    end
+
+    return weather, {
+        self:makeWarning(
+            "collector.weather_forecast_placeholder",
+            "Weather forecast telemetry remains limited until a confirmed runtime accessor exposes the current forecast type.",
+            "info"
+        )
+    }
 end
 
 function StateCollector:collectStorages(context)
@@ -160,7 +335,112 @@ function StateCollector:collectStorages(context)
 end
 
 function StateCollector:collectActiveTasks(context)
-    return {}, {self:placeholderWarning("active_tasks")}
+    local jobs = self:collectJobs(context)
+    local tasks = {}
+    local currentFarmId = self:getCurrentFarmId(context)
+
+    for _, job in ipairs(jobs) do
+        local isCurrentFarmTask = currentFarmId == nil or job.farm_id == nil or job.farm_id == currentFarmId
+
+        if isCurrentFarmTask and (job.status == "running" or job.status == "preparing") then
+            table.insert(tasks, {
+                id = job.job_id,
+                title = job.title,
+                status = job.status == "running" and "active" or "pending"
+            })
+        end
+    end
+
+    return tasks, nil
+end
+
+function StateCollector:collectJobs(context)
+    if context.jobsCache ~= nil then
+        return context.jobsCache.jobs, context.jobsCache.warnings
+    end
+
+    if g_missionManager == nil or g_missionManager.getMissions == nil then
+        local warnings = {
+            self:placeholderWarning("jobs"),
+            self:makeWarning(
+                "collector.mission_manager_unavailable",
+                "g_missionManager is unavailable; mission telemetry could not be collected.",
+                "warning"
+            )
+        }
+        context.jobsCache = {
+            jobs = {},
+            warnings = warnings
+        }
+
+        return context.jobsCache.jobs, context.jobsCache.warnings
+    end
+
+    local jobs = {}
+    local missions = g_missionManager:getMissions()
+
+    if type(missions) ~= "table" then
+        local warnings = {
+            self:placeholderWarning("jobs"),
+            self:makeWarning(
+                "collector.missions_unavailable",
+                "g_missionManager:getMissions() did not return a mission list.",
+                "warning"
+            )
+        }
+        context.jobsCache = {
+            jobs = {},
+            warnings = warnings
+        }
+
+        return context.jobsCache.jobs, context.jobsCache.warnings
+    end
+
+    for _, mission in ipairs(missions) do
+        local runtimeStatus = mission.status
+        local job = {
+            job_id = mission.getUniqueId ~= nil and mission:getUniqueId() or tostring(mission.uniqueId or mission.activeMissionId or ((mission.type ~= nil and mission.type.name) or "unknown")),
+            title = self:getMissionTitle(mission),
+            status = self:getMissionStatusName(runtimeStatus),
+            reward = math.floor((mission.reward or 0) + 0.5),
+            completion = mission.completion or 0
+        }
+
+        if mission.type ~= nil and mission.type.name ~= nil then
+            job.mission_type = tostring(mission.type.name)
+        end
+
+        if mission.farmId ~= nil then
+            job.farm_id = mission.farmId
+        end
+
+        if mission.activeMissionId ~= nil then
+            job.active_id = mission.activeMissionId
+        end
+
+        if mission.getField ~= nil then
+            local field = mission:getField()
+
+            if field ~= nil then
+                if field.getId ~= nil then
+                    job.field_id = field:getId()
+                end
+
+                if field.getName ~= nil then
+                    job.field_name = field:getName()
+                end
+            end
+        end
+
+        table.insert(jobs, job)
+    end
+
+    context.jobsCache = {
+        jobs = jobs,
+        warnings = nil
+    }
+
+    return context.jobsCache.jobs, context.jobsCache.warnings
 end
 
 function StateCollector:applyAdapters(snapshot, context)
@@ -197,16 +477,16 @@ function StateCollector:collect()
         active_tasks = {},
         raw = {
             assumptions = {
-                "Field, vehicle, economy, and contract adapters are placeholders until concrete FS25 APIs are confirmed."
+                "Field, vehicle, storage, loan, price, and weather forecast telemetry remain placeholders until concrete FS25 APIs are confirmed."
             },
             adapter_status = {
                 fields = "placeholder",
                 vehicles = "placeholder",
-                jobs = "placeholder",
-                economy = "placeholder",
-                weather = "placeholder",
+                jobs = "runtime",
+                economy = "runtime",
+                weather = "runtime",
                 storages = "placeholder",
-                active_tasks = "placeholder"
+                active_tasks = "runtime"
             }
         }
     }

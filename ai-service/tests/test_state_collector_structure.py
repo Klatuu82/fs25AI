@@ -40,4 +40,27 @@ def test_state_collector_preserves_snapshot_boundary_with_adapter_status() -> No
     assert "raw = {" in collector
     assert "adapter_status = {" in collector
     assert 'fields = "placeholder"' in collector
-    assert 'active_tasks = "placeholder"' in collector
+    assert 'jobs = "runtime"' in collector
+    assert 'economy = "runtime"' in collector
+    assert 'weather = "runtime"' in collector
+    assert 'active_tasks = "runtime"' in collector
+
+
+def test_state_collector_reads_confirmed_runtime_data_only() -> None:
+    collector = STATE_COLLECTOR_PATH.read_text(encoding="utf-8")
+
+    assert "mission:getFarmId()" in collector
+    assert "function StateCollector:isUsableFarmId(farmId)" in collector
+    assert "FarmManager.SPECTATOR_FARM_ID" in collector
+    assert "mission.playerSystem:getLocalPlayer()" in collector
+    assert "g_farmManager:getFarmById(farmId)" in collector
+    assert "farm:getBalance()" in collector
+    assert "g_missionManager:getMissions()" in collector
+    assert "mission:getUniqueId()" in collector
+    assert "mission:getTitle()" in collector
+    assert "mission:getField()" in collector
+    assert "environment.currentDay" in collector
+    assert "environment.currentMonotonicDay" in collector
+    assert "environment.currentPeriod" in collector
+    assert 'string.format("period_%d", environment.currentPeriod)' in collector
+    assert 'string.format("%02d:%02d", hours, minutes)' in collector
