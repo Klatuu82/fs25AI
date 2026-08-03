@@ -1,0 +1,17 @@
+{
+  "decision_id": "decision-001",
+  "decision_type": "suggestion",
+  "summary": "Field 12 is ready to harvest and weather is clear.",
+  "confidence": 0.71,
+  "recommended_actions": [
+    {
+      "action_type": "review_harvest_plan",
+      "reason": "Harvesting can begin without rain risk.",
+      "priority": "normal",
+      "parameters": {
+        "field_id": "field-12"
+      }
+    }
+  ],
+  "warnings": []
+}

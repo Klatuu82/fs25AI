@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<modDesc descVersion="106">
+    <author>Klatuu82</author>
+    <version>0.1.0.0</version>
+    <title>
+        <en>FS25 AI Assistant</en>
+    </title>
+    <description>
+        <en>Telemetry-first Farming Simulator 25 AI companion scaffold.</en>
+    </description>
+    <multiplayer supported="false"/>
+    <extraSourceFiles>
+        <sourceFile filename="scripts/Config.lua"/>
+        <sourceFile filename="scripts/StateCollector.lua"/>
+        <sourceFile filename="scripts/BridgeClient.lua"/>
+        <sourceFile filename="scripts/ActionExecutor.lua"/>
+        <sourceFile filename="scripts/DebugHud.lua"/>
+        <sourceFile filename="scripts/FS25AI.lua"/>
+    </extraSourceFiles>
+</modDesc>
