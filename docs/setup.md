@@ -31,7 +31,38 @@ Build the mod zip from `/mod`:
 python /home/runner/work/fs25AI/fs25AI/scripts/build_mod_zip.py
 ```
 
-The script packages the contents of `/mod` into `dist/fs25AI-mod.zip`.
+The script packages the contents of `/mod` into a versioned artifact such as
+`dist/fs25AI-mod-0.1.0.0.zip`.
+
+During packaging, the script validates that:
+
+- `modDesc.xml` is present
+- every file referenced from `extraSourceFiles` exists and is included
+- the ZIP is only published after archive validation succeeds
+
+### Reproducible GitHub Actions packaging
+
+Maintainers can build the install-ready ZIP on a clean GitHub runner from the
+Actions UI:
+
+1. Open **Actions** in GitHub.
+2. Select **Build FS25 Mod ZIP**.
+3. Click **Run workflow**.
+4. Optionally enter a branch, tag, or commit SHA in `ref` to package a specific revision.
+5. Start the workflow and wait for the `Build install-ready FS25 mod ZIP` job to finish.
+
+The completed workflow uploads the generated ZIP as an artifact named after the
+archive file, for example `fs25AI-mod-0.1.0.0.zip`.
+
+To download it:
+
+1. Open the finished workflow run.
+2. In the **Artifacts** section, download the `fs25AI-mod-<version>.zip` artifact.
+3. Extract or copy the ZIP as needed for installation or release publication.
+
+The same workflow can also be called by other GitHub workflows through
+`workflow_call`, which makes it the reproducible shared build path for release
+automation while keeping the local script available for quick developer checks.
 
 ## Suggested local workflow
 
