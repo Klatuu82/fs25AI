@@ -46,4 +46,6 @@ The protocol is JSON-based and versioned. It defines payloads for:
 
 ## FS25 API assumptions
 
-This repository intentionally avoids guessing unknown FS25 engine APIs. Where concrete hooks are still unknown, the mod code uses adapter stubs and placeholder data structures. When real game APIs are confirmed, the adapters should be filled in without changing the boundary between collection, transport, planning, and execution.
+The mod bootstrap now uses the standard script-mod lifecycle that GIANTS mods commonly wire through `addModEventListener(...)`, with `loadMap`, `update`, and `deleteMap` callbacks owning per-mission startup and teardown.
+
+Other FS25 integration details still stay intentionally conservative: field, vehicle, economy, weather, and contract adapters remain placeholders until those game-specific APIs are confirmed in the target runtime. When those APIs are verified, the adapters should be filled in without changing the boundary between collection, transport, planning, and execution.

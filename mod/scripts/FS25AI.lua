@@ -1,8 +1,8 @@
-FS25AI = {}
-FS25AI.__index = FS25AI
+FS25AIRuntime = {}
+FS25AIRuntime.__index = FS25AIRuntime
 
-function FS25AI.new(overrides)
-    local self = setmetatable({}, FS25AI)
+function FS25AIRuntime.new(overrides)
+    local self = setmetatable({}, FS25AIRuntime)
     self.config = Config.new(overrides)
     self.stateCollector = StateCollector.new(self.config)
     self.bridgeClient = BridgeClient.new(self.config)
@@ -12,13 +12,13 @@ function FS25AI.new(overrides)
     return self
 end
 
-function FS25AI:log(message)
+function FS25AIRuntime:log(message)
     if self.config.logging.enabled then
         print(string.format("%s %s", self.config.logging.prefix, message))
     end
 end
 
-function FS25AI:update(currentTimeMs)
+function FS25AIRuntime:update(currentTimeMs)
     if self.config.features.telemetryEnabled ~= true then
         return
     end
@@ -44,8 +44,97 @@ function FS25AI:update(currentTimeMs)
     end
 end
 
-function FS25AI:handleCommand(request)
+function FS25AIRuntime:handleCommand(request)
     return self.actionExecutor:execute(request)
 end
 
-g_fs25AI = g_fs25AI or FS25AI.new()
+function FS25AIRuntime:shutdown()
+    self.debugHud:setStatus({})
+end
+
+FS25AI = {
+    MOD_NAME = g_currentModName or "fs25AI",
+    BASE_DIRECTORY = g_currentModDirectory,
+    runtime = nil
+}
+
+function FS25AI:getVersion()
+    if g_modManager ~= nil and g_modManager.getModByName ~= nil then
+        local mod = g_modManager:getModByName(self.MOD_NAME)
+
+        if mod ~= nil and mod.version ~= nil then
+            return mod.version
+        end
+    end
+
+    return "unknown"
+end
+
+function FS25AI:log(message)
+    local prefix = "[fs25AI]"
+
+    if Logging ~= nil and Logging.info ~= nil then
+        Logging.info("%s %s", prefix, message)
+    else
+        print(string.format("%s %s", prefix, message))
+    end
+end
+
+function FS25AI:getCurrentTimeMs()
+    local mission = g_currentMission
+
+    if mission == nil then
+        return 0
+    end
+
+    if mission.time ~= nil then
+        return mission.time
+    end
+
+    if mission.environment ~= nil and mission.environment.dayTime ~= nil then
+        return mission.environment.dayTime
+    end
+
+    return 0
+end
+
+function FS25AI:loadMap(mapFilename)
+    if self.runtime ~= nil then
+        self:deleteMap()
+    end
+
+    self.runtime = FS25AIRuntime.new()
+    g_fs25AI = self.runtime
+
+    local missionInfo = g_currentMission ~= nil and g_currentMission.missionInfo or nil
+    local savegameName = missionInfo ~= nil and missionInfo.savegameName or "unknown"
+
+    self:log(string.format(
+        "Loaded mod version %s for map '%s' (savegame: %s)",
+        self:getVersion(),
+        tostring(mapFilename),
+        tostring(savegameName)
+    ))
+end
+
+function FS25AI:deleteMap()
+    if self.runtime == nil then
+        return
+    end
+
+    self.runtime:shutdown()
+    self.runtime = nil
+    g_fs25AI = nil
+
+    self:log("Shutdown complete for current mission")
+end
+
+function FS25AI:update(dt)
+    if self.runtime == nil then
+        return
+    end
+
+    self.runtime:update(self:getCurrentTimeMs())
+end
+
+addModEventListener(FS25AI)
