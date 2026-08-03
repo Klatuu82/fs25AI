@@ -294,11 +294,11 @@ function StateCollector:getMissionTitle(mission)
 end
 
 function StateCollector:collectFields(context)
-    return {}, {self:placeholderWarning("fields")}
+    return {}, {self:placeholderWarning("fields")}, "placeholder"
 end
 
 function StateCollector:collectVehicles(context)
-    return {}, {self:placeholderWarning("vehicles")}
+    return {}, {self:placeholderWarning("vehicles")}, "placeholder"
 end
 
 function StateCollector:collectEconomy(context)
@@ -318,14 +318,14 @@ function StateCollector:collectEconomy(context)
                 "info"
             ),
             self:placeholderWarning("prices")
-        }
+        }, "runtime"
     end
 
     return {
         money = 0,
         loan = 0,
         prices = {}
-    }, {self:placeholderWarning("economy")}
+    }, {self:placeholderWarning("economy")}, "placeholder"
 end
 
 function StateCollector:collectWeather(context)
@@ -355,15 +355,15 @@ function StateCollector:collectWeather(context)
             "Weather forecast telemetry remains limited until a confirmed runtime accessor exposes the current forecast type.",
             "info"
         )
-    }
+    }, environment ~= nil and "runtime" or "placeholder"
 end
 
 function StateCollector:collectStorages(context)
-    return {}, {self:placeholderWarning("storages")}
+    return {}, {self:placeholderWarning("storages")}, "placeholder"
 end
 
 function StateCollector:collectActiveTasks(context)
-    local jobs = self:collectJobs(context)
+    local jobs, _, jobsStatus = self:collectJobs(context)
     local tasks = {}
     local currentFarmId = self:getCurrentFarmId(context)
 
@@ -379,12 +379,12 @@ function StateCollector:collectActiveTasks(context)
         end
     end
 
-    return tasks, nil
+    return tasks, nil, jobsStatus == "runtime" and "runtime" or "placeholder"
 end
 
 function StateCollector:collectJobs(context)
     if context.jobsCache ~= nil then
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     if g_missionManager == nil or g_missionManager.getMissions == nil then
@@ -398,10 +398,11 @@ function StateCollector:collectJobs(context)
         }
         context.jobsCache = {
             jobs = {},
-            warnings = warnings
+            warnings = warnings,
+            status = "placeholder"
         }
 
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     local jobs = {}
@@ -418,10 +419,11 @@ function StateCollector:collectJobs(context)
         }
         context.jobsCache = {
             jobs = {},
-            warnings = warnings
+            warnings = warnings,
+            status = "placeholder"
         }
 
-        return context.jobsCache.jobs, context.jobsCache.warnings
+        return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
     end
 
     for _, mission in ipairs(missions) do
@@ -467,17 +469,19 @@ function StateCollector:collectJobs(context)
 
     context.jobsCache = {
         jobs = jobs,
-        warnings = nil
+        warnings = nil,
+        status = "runtime"
     }
 
-    return context.jobsCache.jobs, context.jobsCache.warnings
+    return context.jobsCache.jobs, context.jobsCache.warnings, context.jobsCache.status
 end
 
 function StateCollector:applyAdapters(snapshot, context)
     for category, adapter in pairs(self.adapters) do
-        local value, adapterWarnings = adapter(context)
+        local value, adapterWarnings, adapterStatus = adapter(context)
         snapshot[category] = value
         self:appendWarnings(snapshot.warnings, adapterWarnings)
+        snapshot.raw.adapter_status[category] = adapterStatus or "placeholder"
     end
 end
 
@@ -510,15 +514,7 @@ function StateCollector:collect()
                 "Field, vehicle, storage, loan, price, and weather forecast telemetry remain placeholders until concrete FS25 APIs are confirmed."
             },
             serialization_policy = self:getProtocolSetting("unsupportedFieldPolicy", "omit_with_warning"),
-            adapter_status = {
-                fields = "placeholder",
-                vehicles = "placeholder",
-                jobs = "runtime",
-                economy = "runtime",
-                weather = "runtime",
-                storages = "placeholder",
-                active_tasks = "runtime"
-            }
+            adapter_status = {}
         }
     }
 

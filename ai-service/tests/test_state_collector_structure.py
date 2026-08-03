@@ -45,12 +45,10 @@ def test_state_collector_preserves_snapshot_boundary_with_adapter_status() -> No
     assert 'source = self:getProtocolSetting("snapshotSource", "fs25-mod")' in collector
     assert "raw = {" in collector
     assert 'serialization_policy = self:getProtocolSetting("unsupportedFieldPolicy", "omit_with_warning")' in collector
-    assert "adapter_status = {" in collector
-    assert 'fields = "placeholder"' in collector
-    assert 'jobs = "runtime"' in collector
-    assert 'economy = "runtime"' in collector
-    assert 'weather = "runtime"' in collector
-    assert 'active_tasks = "runtime"' in collector
+    assert "adapter_status = {}" in collector
+    assert 'snapshot.raw.adapter_status[category] = adapterStatus or "placeholder"' in collector
+    assert 'return {}, {self:placeholderWarning("fields")}, "placeholder"' in collector
+    assert 'return tasks, nil, jobsStatus == "runtime" and "runtime" or "placeholder"' in collector
 
 
 def test_state_collector_reads_confirmed_runtime_data_only() -> None:
