@@ -39,3 +39,14 @@ The script packages the contents of `/mod` into `dist/fs25AI-mod.zip`.
 2. Point the mod bridge configuration at the local endpoint.
 3. Start with telemetry collection only.
 4. Inspect the JSON payloads in `/shared/samples` while filling in real FS25 adapters.
+
+## FS25 runtime bootstrap verification
+
+After packaging and copying the mod into the FS25 mods folder:
+
+1. Start or load a savegame.
+2. Confirm `log.txt` contains a line like `[fs25AI] Loaded mod version ...`.
+3. Return to the main menu or switch missions and confirm `log.txt` contains `[fs25AI] Shutdown complete for current mission`.
+4. If telemetry adapters are still placeholders, treat that as expected scaffold behavior rather than evidence that the lifecycle hook failed.
+
+The runtime entrypoint is intentionally bound through the script-mod listener callbacks `loadMap`, `update`, and `deleteMap` instead of relying on Lua file-load side effects alone.
