@@ -6,6 +6,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+GAME_STATE_SNAPSHOT_SCHEMA_VERSION = "1.0.0"
+GAME_STATE_SNAPSHOT_SOURCE = "fs25-mod"
+
 
 class WarningMessage(BaseModel):
     code: str
@@ -45,17 +48,43 @@ class EconomyState(BaseModel):
     prices: dict[str, int] = Field(default_factory=dict)
 
 
+class JobState(BaseModel):
+    job_id: str
+    title: str
+    status: str = "available"
+    reward: int = 0
+    completion: float = 0.0
+    mission_type: str | None = None
+    farm_id: int | None = None
+    active_id: int | None = None
+    field_id: int | None = None
+    field_name: str | None = None
+
+
+class WeatherState(BaseModel):
+    season: str = "unknown"
+    day: int = 0
+    time: str = "00:00"
+    forecast: str = "unknown"
+
+
+class StorageState(BaseModel):
+    storage_id: str
+    name: str
+    contents: dict[str, int] = Field(default_factory=dict)
+
+
 class GameStateSnapshot(BaseModel):
-    schema_version: str = "1.0.0"
+    schema_version: str = GAME_STATE_SNAPSHOT_SCHEMA_VERSION
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    source: str = "fs25-mod"
+    source: str = GAME_STATE_SNAPSHOT_SOURCE
     session_id: str = "unknown"
     fields: list[FieldStatus] = Field(default_factory=list)
     vehicles: list[VehicleState] = Field(default_factory=list)
-    jobs: list[dict[str, Any]] = Field(default_factory=list)
+    jobs: list[JobState] = Field(default_factory=list)
     economy: EconomyState = Field(default_factory=EconomyState)
-    weather: dict[str, Any] = Field(default_factory=dict)
-    storages: list[dict[str, Any]] = Field(default_factory=list)
+    weather: WeatherState = Field(default_factory=WeatherState)
+    storages: list[StorageState] = Field(default_factory=list)
     warnings: list[WarningMessage] = Field(default_factory=list)
     active_tasks: list[ActiveTask] = Field(default_factory=list)
     raw: dict[str, Any] = Field(default_factory=dict)

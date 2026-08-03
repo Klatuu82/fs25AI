@@ -10,6 +10,11 @@ function Config.new(overrides)
         telemetryIntervalMs = 1000,
         maxBufferedMessages = 32
     }
+    self.protocol = {
+        snapshotSchemaVersion = "1.0.0",
+        snapshotSource = "fs25-mod",
+        unsupportedFieldPolicy = "omit_with_warning"
+    }
     self.features = {
         telemetryEnabled = true,
         suggestionsEnabled = true,

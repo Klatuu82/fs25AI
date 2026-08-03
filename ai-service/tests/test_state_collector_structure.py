@@ -5,6 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STATE_COLLECTOR_PATH = REPO_ROOT / "mod" / "scripts" / "StateCollector.lua"
+CONFIG_PATH = REPO_ROOT / "mod" / "scripts" / "Config.lua"
 
 
 def test_state_collector_declares_explicit_category_adapters() -> None:
@@ -34,10 +35,16 @@ def test_state_collector_uses_structured_warnings_for_missing_runtime_state() ->
 
 def test_state_collector_preserves_snapshot_boundary_with_adapter_status() -> None:
     collector = STATE_COLLECTOR_PATH.read_text(encoding="utf-8")
+    config = CONFIG_PATH.read_text(encoding="utf-8")
 
-    assert 'schema_version = "1.0.0"' in collector
-    assert 'source = "fs25-mod"' in collector
+    assert "self.protocol = {" in config
+    assert 'snapshotSchemaVersion = "1.0.0"' in config
+    assert 'snapshotSource = "fs25-mod"' in config
+    assert 'unsupportedFieldPolicy = "omit_with_warning"' in config
+    assert 'schema_version = self:getProtocolSetting("snapshotSchemaVersion", "1.0.0")' in collector
+    assert 'source = self:getProtocolSetting("snapshotSource", "fs25-mod")' in collector
     assert "raw = {" in collector
+    assert 'serialization_policy = self:getProtocolSetting("unsupportedFieldPolicy", "omit_with_warning")' in collector
     assert "adapter_status = {" in collector
     assert 'fields = "placeholder"' in collector
     assert 'jobs = "runtime"' in collector
@@ -62,5 +69,5 @@ def test_state_collector_reads_confirmed_runtime_data_only() -> None:
     assert "environment.currentDay" in collector
     assert "environment.currentMonotonicDay" in collector
     assert "environment.currentPeriod" in collector
-    assert 'string.format("period_%d", environment.currentPeriod)' in collector
+    assert 'string.format("period_%d", self:coerceInteger(environment.currentPeriod, 0))' in collector
     assert 'string.format("%02d:%02d", hours, minutes)' in collector
