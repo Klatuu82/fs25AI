@@ -49,3 +49,7 @@ The protocol is JSON-based and versioned. It defines payloads for:
 The mod bootstrap now uses the standard script-mod lifecycle that GIANTS mods commonly wire through `addModEventListener(...)`, with `loadMap`, `update`, and `deleteMap` callbacks owning per-mission startup and teardown.
 
 Other FS25 integration details still stay intentionally conservative: field, vehicle, economy, weather, and contract adapters remain placeholders until those game-specific APIs are confirmed in the target runtime. When those APIs are verified, the adapters should be filled in without changing the boundary between collection, transport, planning, and execution.
+
+For the current list of confirmed lifecycle hooks, mission/session access paths,
+nil-safety rules, and still-unconfirmed telemetry categories, see
+[FS25 telemetry API reference](fs25-telemetry-reference.md).
