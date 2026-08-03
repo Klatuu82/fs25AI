@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app, state_repository
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SAMPLE_SNAPSHOT_PATH = REPO_ROOT / "shared" / "samples" / "game-state.snapshot.json"
 
 client = TestClient(app)
 
 
 def setup_function() -> None:
     state_repository._latest = None
+
+
+def load_sample_snapshot() -> dict[str, object]:
+    return json.loads(SAMPLE_SNAPSHOT_PATH.read_text(encoding="utf-8"))
 
 
 def test_health_endpoint_reports_provider() -> None:
@@ -19,21 +30,22 @@ def test_health_endpoint_reports_provider() -> None:
 
 
 def test_ingest_snapshot_returns_conservative_suggestion() -> None:
-    response = client.post(
-        "/telemetry/snapshots",
-        json={
-            "session_id": "savegame-1",
-            "active_tasks": [
-                {"id": "task-1", "title": "Check harvest window", "status": "active"}
-            ],
-        },
-    )
+    response = client.post("/telemetry/snapshots", json=load_sample_snapshot())
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["snapshot"]["session_id"] == "savegame-1"
+    assert payload["snapshot"]["session_id"] == "CareerSavegame1"
     assert payload["decision"]["decision_type"] == "suggestion"
-    assert payload["decision"]["recommended_actions"][0]["action_type"] == "review_task"
+    assert payload["decision"]["recommended_actions"][0]["action_type"] == "inspect_warnings"
+
+
+def test_ingest_snapshot_rejects_unsupported_contract_values() -> None:
+    snapshot = load_sample_snapshot()
+    snapshot["schema_version"] = "9.9.9"
+
+    response = client.post("/telemetry/snapshots", json=snapshot)
+
+    assert response.status_code == 422
 
 
 def test_latest_snapshot_returns_404_before_ingestion() -> None:
