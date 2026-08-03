@@ -1,0 +1,70 @@
+name: Build FS25 Mod ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to build (defaults to the selected ref)
+        required: false
+        type: string
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch, tag, or commit SHA to build
+        required: false
+        type: string
+    outputs:
+      artifact-name:
+        description: Generated ZIP artifact name
+        value: ${{ jobs.build-mod-zip.outputs.artifact-name }}
+      artifact-path:
+        description: Generated ZIP artifact path
+        value: ${{ jobs.build-mod-zip.outputs.artifact-path }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-mod-zip:
+    name: Build install-ready FS25 mod ZIP
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-name: ${{ steps.package.outputs.artifact_name }}
+      artifact-path: ${{ steps.package.outputs.artifact_path }}
+    steps:
+      - name: Checkout selected revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build and validate mod ZIP
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python "${{ github.workspace }}/scripts/build_mod_zip.py" \
+            --source-dir "${{ github.workspace }}/mod" \
+            --output-dir "${{ github.workspace }}/dist"
+
+          artifact_path="$(find "${{ github.workspace }}/dist" -maxdepth 1 -type f -name 'fs25AI-mod-*.zip' | sort | head -n 1)"
+          if [ -z "${artifact_path}" ]; then
+            echo "Packaging did not produce a ZIP artifact." >&2
+            exit 1
+          fi
+
+          artifact_name="$(basename "${artifact_path}")"
+          echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_path=${artifact_path}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.artifact_name }}
+          path: ${{ steps.package.outputs.artifact_path }}
+          if-no-files-found: error
