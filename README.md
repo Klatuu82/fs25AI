@@ -75,6 +75,7 @@ convention used by the other installed FS25 mods.
 ## Documentation
 
 - [Architecture overview](docs/architecture.md)
+- [FS25 telemetry API reference](docs/fs25-telemetry-reference.md)
 - [Setup guide](docs/setup.md)
 - [Roadmap](docs/roadmap.md)
 - [Shared protocol](shared/protocol.md)

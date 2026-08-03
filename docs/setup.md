@@ -98,6 +98,7 @@ upload a workflow artifact only; they do not create or modify a GitHub Release.
 2. Point the mod bridge configuration at the local endpoint.
 3. Start with telemetry collection only.
 4. Inspect the JSON payloads in `/shared/samples` while filling in real FS25 adapters.
+5. Check `docs/fs25-telemetry-reference.md` before adding new FS25 runtime lookups.
 
 ## FS25 smoke-test and log verification
 
