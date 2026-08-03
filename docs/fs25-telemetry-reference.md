@@ -124,7 +124,7 @@ The following categories still require runtime verification before production
 use and belong to follow-up telemetry issues:
 
 - field ownership, crop, and growth-state APIs
-- contract/job manager access
+- contract/job details beyond the confirmed mission-list, status, reward, and completion accessors
 - vehicle/tool iteration and attachment state
 - loan and sell-price managers
 - storage/silo inventory access
