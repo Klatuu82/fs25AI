@@ -70,7 +70,7 @@ function FS25AIRuntime:update(currentTimeMs)
     end
 
     -- Process the outbound queue to actually perform the network requests.
-    self.bridgeClient:processOutboundQueue()
+    self.bridgeClient:processOutboundQueue(currentTimeMs)
 end
 
 function FS25AIRuntime:handleCommand(request)
