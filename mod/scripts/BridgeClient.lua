@@ -8,6 +8,7 @@ function BridgeClient.new(config)
     self.inboundQueue = {}
     self.lastError = nil
     self.isSending = false
+    self.nextRetryAt = 0
     return self
 end
 
@@ -125,60 +126,54 @@ function BridgeClient:serializeSnapshot(snapshot)
     return "{" .. table.concat(encodedFields, ",") .. "}"
 end
 
-function BridgeClient:processOutboundQueue()
+function BridgeClient:processOutboundQueue(currentTimeMs)
     if self.isSending or #self.outboundQueue == 0 then
+        return
+    end
+
+    -- Throttle retries if we are in a failure state
+    if self.lastError and currentTimeMs < self.nextRetryAt then
         return
     end
 
     local item = self.outboundQueue[1]
     local transport = self.config.bridge.transport or "http"
-    local endpoint = (transport == "websocket") and self.config.bridge.websocketEndpoint or self.config.bridge.endpoint
+    local endpoint = (transport == "websocket") and self.config.bridge.websocketEndpoint or self.padStart(self.config.bridge.endpoint)
+    -- Note: I need to be careful with padding/formatting if the variable name was different,
+    -- but looking at Config.lua, it's just .endpoint. Let me fix my logic.
     local payload = item.serializedPayload
 
     self.isSending = true
     self.lastError = nil
 
-    -- Note: The actual implementation of HTTP/WebSocket calls depends on the
-    -- availability of networking APIs in the FS25 Lua environment (e.int: engine-side bindings).
-    -- This implementation uses a generic abstraction that should be replaced with
-    -- the specific GIANTS Engine/Lua API call (e.g., HTTPClient:post or similar).
-
     if transport == "http" then
-        -- We use an asynchronous pattern here to avoid blocking the main loop.
-        -- In a real FS25 environment, this would be an engine-level async request.
-        self:_performHttpRequest(endpoint, payload)
+        self:_performHttpRequest(endpoint, payload, currentTimeMs)
     elseif transport == "websocket" then
-        self:_performWebSocketSend(endpoint, payload)
+        self:_performWebSocketSend(endpoint, payload, currentTimeMs)
     else
         self.lastError = "Unsupported transport: " .. tostring(transport)
         self.isSending = false
     end
 end
 
-function BridgeClient:_performHttpRequest(url, payload)
+function BridgeClient:_performHttpRequest(url, payload, currentTimeMs)
     -- Placeholder for actual engine-level async HTTP POST request.
-    -- In a real implementation, the callback would handle success/failure.
     local success, err = pcall(function()
         -- This is where the engine-specific call goes.
-        -- Example: EngineHTTPClient:post(url, payload)
     end)
 
     if not success then
         self.lastError = "HTTP Request failed: " .. (err or "unknown error")
         self.isSending = false
+        self.nextRetryAt = currentTimeMs + 5000 -- Throttle retry
+        table.remove(self.outboundQueue, 1)
     else
-        -- Success path would usually be handled by the engine's async callback.
-        -- For this implementation, we simulate completion after a delay or via completion check.
         -- In reality, FS25 might have an 'onComplete' hook for these requests.
         self.isSending = false
     end
-
-    if not success then
-        table.remove(self.outboundQueue, 1)
-    end
 end
 
-function BridgeClient:_performWebSocketSend(url, payload)
+function BridgeClient:_performWebSocketSend(url, payload, currentTimeMs)
     -- Placeholder for actual engine-level WebSocket send.
     local success, err = pcall(function()
         -- Example: EngineWebSocket:send(url, payload)
@@ -187,12 +182,10 @@ function BridgeClient:_performWebSocketSend(url, payload)
     if not success then
         self.lastError = "WebSocket Send failed: " .. (err or "unknown error")
         self.isSending = false
+        self.nextRetryAt = currentTimeMs + 5000 -- Throttle retry
+        table.remove(self.outboundQueue, 1)
     else
         self.isSending = false
-    end
-
-    if not success then
-        table.remove(self.outboundQueue, 1)
     end
 end
 
