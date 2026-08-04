@@ -68,6 +68,9 @@ function FS25AIRuntime:update(currentTimeMs)
             errorMessage or "unknown error"
         })
     end
+
+    -- Process the outbound queue to actually perform the network requests.
+    self.bridgeClient:processOutboundQueue()
 end
 
 function FS25AIRuntime:handleCommand(request)
