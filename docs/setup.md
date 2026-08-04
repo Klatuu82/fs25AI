@@ -111,6 +111,7 @@ FS25 writes its main runtime log to:
 Keep that file open while testing or reopen it after quitting the game.
 
 ### Expected successful load signal
+... (rest of content)
 
 After copying the ZIP into the mods folder and loading into a savegame or map:
 
@@ -141,7 +142,8 @@ Common things to verify:
 - `log.txt` does not report a failed mod load, XML parsing problem, or missing script file from `extraSourceFiles`
 - the mod is actually enabled for the current savegame
 
-If the mod loads but telemetry does not reach the AI service, treat that separately from bootstrap success: the startup smoke signal, loaded-version line, shutdown line, and heartbeat HUD confirm the local mod lifecycle is active even when the bridge endpoint is offline.
+If the mod loads but telemetry does not reach the AI service, treat that separately from bootstrap success: the startup smoke and shutdown signals confirm the local mod lifecycle is active even when the bridge endpoint is offline. **To troubleshoot telemetry specifically, refer to the [Telemetry E2E Verification Checklist](docs/telemetry-e2e-checklist.md).**
+
 
 ## Current scaffold limitations
 
